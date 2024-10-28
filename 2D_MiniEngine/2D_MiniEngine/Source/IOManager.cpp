@@ -1,7 +1,9 @@
 #include "IOManager.h"
 #include <errno.h>
-#include <stdio.h>
 #include <stdlib.h>
+
+#define __STDC_WANT_LIB_EXT1__ 1
+#include <stdio.h>
 
 #define IO_READ_CHUNK_SIZE 2097152
 #define IO_READ_ERROR_GENERAL "Error reading file: %s. errno: %d\n"
@@ -11,10 +13,11 @@ File IOManager::ReadFile(const char* path)
 {
 	File file = File();
 
-	FILE* fp = fopen(path, "rb");
+	FILE* fp;
+	errno_t openResult = fopen_s(&fp, path, "r");
 	if (!fp || ferror(fp)) {
-		printf("Failed to open file: %s. %dz", path, errno);
-		return;
+		printf("Failed to open file: %s. %dz", path, openResult);
+		return file;
 	}
 
 	char* data = NULL;
@@ -30,14 +33,14 @@ File IOManager::ReadFile(const char* path)
 			if (size <= used) {
 				free(data);
 				printf("Input file too large: %s\n", path);
-				return;
+				return file;
 			}
 
 			tmp = (char*)realloc(data, size);
 			if (!tmp) {
 				free(data);
 				printf(IO_READ_ERROR_MEMORY, path);
-				return;
+				return file;
 			}
 			data = tmp;
 		}
@@ -52,15 +55,15 @@ File IOManager::ReadFile(const char* path)
 
 	if (ferror(fp)) {
 		free(data);
-		printf(IO_READ_ERROR_MEMORY, path, errno);
-		return;
+		printf(IO_READ_ERROR_GENERAL, path, errno);
+		return file;
 	}
 
 	tmp = (char*)realloc(data, used + 1);
 	if (!tmp) {
 		free(data);
 		printf(IO_READ_ERROR_MEMORY, path);
-		return;
+		return file;
 	}
 
 	data = tmp;
@@ -75,10 +78,11 @@ File IOManager::ReadFile(const char* path)
 
 int IOManager::WriteFile(void* buffer, size_t size, const char* path)
 {
-	FILE* fp = fopen(path, "wb");
+	FILE* fp;
+	errno_t openResult = fopen_s(&fp, path, "w");
 	if (!fp || ferror(fp)) {
 		printf("Cannot write file: %s\n", path);
-		return;
+		return -1;
 	}
 
 	size_t chunks_written = fwrite(buffer, size, 1, fp);
@@ -86,7 +90,7 @@ int IOManager::WriteFile(void* buffer, size_t size, const char* path)
 
 	if (chunks_written != 1) {
 		printf("Write error: Expected 1 chunk, got %zu\n", chunks_written);
-		return;
+		return -1;
 	}
 
 	return 0;

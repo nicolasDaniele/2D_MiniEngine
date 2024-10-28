@@ -14,9 +14,9 @@ struct File
 	}
 };
 
-class IOManager 
+class IOManager
 {
 public:
-	File ReadFile(const char* path);
-	int WriteFile(void* buffer, size_t size, const char* path);
+	static File ReadFile(const char* path);
+	static int WriteFile(void* buffer, size_t size, const char* path);
 };
